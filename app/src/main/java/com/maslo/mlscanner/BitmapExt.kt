@@ -1,0 +1,28 @@
+package com.maslo.mlscanner
+
+import android.graphics.Bitmap
+
+fun Bitmap.cropCenter(size: Int)
+/*(
+    newWidth:Int = min(width,height),
+    newHeight:Int = min(width,height)
+)*/: Bitmap? {
+    val newWidth: Int = size//min(width,height),
+    val newHeight: Int = size//min(width,height)
+    // calculate x and y offset
+    val xOffset = (width - newWidth) / 2
+    val yOffset = (height - newHeight) / 2
+
+    return try {
+        Bitmap.createBitmap(
+            this, // source bitmap
+            xOffset, // x coordinate of the first pixel in source
+            yOffset, // y coordinate of the first pixel in source
+            newWidth, // new width
+            newHeight // new height
+        )
+
+    } catch (e: IllegalArgumentException) {
+        null
+    }
+}

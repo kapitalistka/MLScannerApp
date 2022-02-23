@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">MLScannerApp</string>
+    <string name="title_activity_breed" />
+    <string name="empty_text" />
+    <string name="or">or</string>
+    <string name="prop_to_scan">Please, take  photo of  a dog.</string>
+
+</resources>
