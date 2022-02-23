@@ -37,8 +37,8 @@ class BreedActivity : AppCompatActivity() {
             it?.let {
                 binding.resultTv.text = it.breed.first
                 val isAlter = it.alterBreed != null
-                binding.or.visibility = if (isAlter) View.VISIBLE else View.GONE
-                binding.resultAltTv.visibility = if (isAlter) View.VISIBLE else View.GONE
+                binding.or.visibility = if (isAlter) View.VISIBLE else View.INVISIBLE
+                binding.resultAltTv.visibility = if (isAlter) View.VISIBLE else View.INVISIBLE
                 binding.resultAltTv.text = it.alterBreed?.first ?: ""
 
                 Toast.makeText(

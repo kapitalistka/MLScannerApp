@@ -36,32 +36,38 @@ class BreedsViewModel : ViewModel() {
             MemoryFormat.CHANNELS_LAST
         )
 
-        Log.d(TAG, "processBitmap: input tensor shape " + inputTensor.shape())
-
         val outputTensor: Tensor? = model?.forward(IValue.from(inputTensor))?.toTensor()
         val scores = outputTensor?.dataAsFloatArray
 
         if (scores != null) {
             // searching for the index with maximum score
-            var maxScore = -Float.MAX_VALUE
+            /*var maxScore = -Float.MAX_VALUE
             var maxScoreIdx = -1
             scores.indices.forEach { i ->
                 if (scores[i] > maxScore) {
                     maxScore = scores[i]
                     maxScoreIdx = i
                 }
-            }
+            }*/
 
             val pairs: MutableList<Pair<Int, Float>> = mutableListOf()
             scores.forEachIndexed { i, v -> pairs.add(Pair(i, v)) }
             val sortedPairs = pairs.sortedWith(compareBy { it.second }).asReversed()
 
+            Log.d(TAG, "processBitmap: max predicted index ${sortedPairs[0].first}")
+            val score1 = sortedPairs[0].second
+            val score2 = sortedPairs[1].second
+            val q = score2 / score1 * 100
+            Log.d(TAG, "processBitmap: diff between 1st and 2nd: $q%. ($score1 , ${score2})")
+
             val breed = Pair(Breeds.BREEDS[sortedPairs[0].first], sortedPairs[0].second)
-            val alterBreed = Pair(Breeds.BREEDS[sortedPairs[1].first], sortedPairs[1].second)
+            val alterBreed =
+                if (q > 80) Pair(Breeds.BREEDS[sortedPairs[1].first], sortedPairs[1].second)
+                else null
+
             val prediction = Prediction(breed, alterBreed)
             predictionLiveData.value = prediction
 
-            Log.d(TAG, "processBitmap: max predicted index $maxScoreIdx")
 
         }
     }
@@ -74,8 +80,7 @@ class Prediction(
 
 fun readModelFromAsset(context: Context): Module? {
     return try {
-        //TODO: constant
-        LiteModuleLoader.load(assetFilePath(context, "model7.pt"))
+        LiteModuleLoader.load(assetFilePath(context, MODEL_ASSET_FILE))
     } catch (e: IOException) {
         Log.e(TAG, "Error reading assets", e)
         null
