@@ -44,7 +44,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/result_tv"
+            app:layout_constraintBottom_toTopOf="@id/ambiguous_tv"
             android:layout_marginBottom="16dp"
             tools:src="@drawable/ic_launcher_background"
             tools:visibility="invisible"
@@ -87,7 +87,19 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintBottom_toTopOf="@id/or" />
 
-
+        <TextView
+            android:id="@+id/ambiguous_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ambiguous_note"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/colorAccent"
+            android:layout_marginBottom="16dp"
+            android:visibility="invisible"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/result_tv" />
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>

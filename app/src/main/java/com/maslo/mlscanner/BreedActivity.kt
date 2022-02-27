@@ -1,20 +1,18 @@
 package com.maslo.mlscanner
 
 import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.maslo.mlscanner.databinding.ActivityBreedBinding
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
 
+private const val TAG = "BreedActivity"
 
 class BreedActivity : AppCompatActivity() {
 
@@ -40,10 +38,11 @@ class BreedActivity : AppCompatActivity() {
                 binding.or.visibility = if (isAlter) View.VISIBLE else View.INVISIBLE
                 binding.resultAltTv.visibility = if (isAlter) View.VISIBLE else View.INVISIBLE
                 binding.resultAltTv.text = it.alterBreed?.first ?: ""
+                binding.ambiguousTv.visibility =  if (it.isAmbiguity) View.VISIBLE else View.INVISIBLE
 
                 Toast.makeText(
                     this,
-                    "${it.breed.second}, ${it.alterBreed?.second?:0}",
+                    "${it.breed.second}, ${it.alterBreed?.second ?: 0}",
                     Toast.LENGTH_SHORT
                 ).show()
             }

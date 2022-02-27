@@ -5,6 +5,9 @@ import android.graphics.Bitmap
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.pytorch.*
 import org.pytorch.torchvision.TensorImageUtils
 import java.io.File
@@ -24,58 +27,59 @@ class BreedsViewModel : ViewModel() {
         this.model = model
     }
 
-    //TODO: do it in worker thread
     fun processBitmap(bitmap: Bitmap) {
+        viewModelScope.launch(Dispatchers.IO) {
 
-        val scaledBitmap =
-            Bitmap.createScaledBitmap(bitmap, 256, 256, false).apply { cropCenter(224) };
-        val inputTensor = TensorImageUtils.bitmapToFloat32Tensor(
-            scaledBitmap,
-            TensorImageUtils.TORCHVISION_NORM_MEAN_RGB,
-            TensorImageUtils.TORCHVISION_NORM_STD_RGB,
-            MemoryFormat.CHANNELS_LAST
-        )
+            val scaledBitmap = bitmap
+                .run { createSquaredBitmap() }
+                ?.run { createScaledBitmap(256, 256, false) }
+                ?.run { cropCenter(224) }
 
-        val outputTensor: Tensor? = model?.forward(IValue.from(inputTensor))?.toTensor()
-        val scores = outputTensor?.dataAsFloatArray
+            val inputTensor = TensorImageUtils.bitmapToFloat32Tensor(
+                scaledBitmap,
+                TensorImageUtils.TORCHVISION_NORM_MEAN_RGB,
+                TensorImageUtils.TORCHVISION_NORM_STD_RGB,
+                MemoryFormat.CHANNELS_LAST
+            )
 
-        if (scores != null) {
-            // searching for the index with maximum score
-            /*var maxScore = -Float.MAX_VALUE
-            var maxScoreIdx = -1
-            scores.indices.forEach { i ->
-                if (scores[i] > maxScore) {
-                    maxScore = scores[i]
-                    maxScoreIdx = i
-                }
-            }*/
+            val outputTensor: Tensor? = model?.forward(IValue.from(inputTensor))?.toTensor()
 
-            val pairs: MutableList<Pair<Int, Float>> = mutableListOf()
-            scores.forEachIndexed { i, v -> pairs.add(Pair(i, v)) }
-            val sortedPairs = pairs.sortedWith(compareBy { it.second }).asReversed()
+            val scores = outputTensor?.dataAsFloatArray?.let { softMax(it) }
 
-            Log.d(TAG, "processBitmap: max predicted index ${sortedPairs[0].first}")
-            val score1 = sortedPairs[0].second
-            val score2 = sortedPairs[1].second
-            val q = score2 / score1 * 100
-            Log.d(TAG, "processBitmap: diff between 1st and 2nd: $q%. ($score1 , ${score2})")
+            if (scores != null) {
 
-            val breed = Pair(Breeds.BREEDS[sortedPairs[0].first], sortedPairs[0].second)
-            val alterBreed =
-                if (q > 80) Pair(Breeds.BREEDS[sortedPairs[1].first], sortedPairs[1].second)
-                else null
+                val pairs: MutableList<Pair<Int, Float>> = mutableListOf()
+                scores.forEachIndexed { i, v -> pairs.add(Pair(i, v)) }
+                val sortedPairs = pairs.sortedWith(compareBy { it.second }).asReversed()
 
-            val prediction = Prediction(breed, alterBreed)
-            predictionLiveData.value = prediction
+                Log.d(TAG, "processBitmap: max predicted index ${sortedPairs[0].first}")
+                val score1 = sortedPairs[0].second
+                val score2 = sortedPairs[1].second
+                val q = score2 / score1 * 100
+                Log.d(TAG, "processBitmap: diff between 1st and 2nd: $q%. ($score1 , ${score2})")
 
+                val breed = Pair(Breeds.BREEDS[sortedPairs[0].first], sortedPairs[0].second)
+                val alterBreed =
+                    if (q > PERCENT_FOR_ALTER_RESULT) Pair(
+                        Breeds.BREEDS[sortedPairs[1].first],
+                        sortedPairs[1].second
+                    )
+                    else null
 
+                val isAmbiguity = score1 < QUOTA_FOR_AMBIGOUOS
+
+                val prediction = Prediction(breed, alterBreed, isAmbiguity)
+                predictionLiveData.postValue(prediction)
+
+            }
         }
     }
 }
 
 class Prediction(
     val breed: Pair<String, Float>,
-    val alterBreed: Pair<String, Float>? = null
+    val alterBreed: Pair<String, Float>? = null,
+    val isAmbiguity:Boolean = false
 )
 
 fun readModelFromAsset(context: Context): Module? {
@@ -88,7 +92,7 @@ fun readModelFromAsset(context: Context): Module? {
 }
 
 @Throws(IOException::class)
-fun assetFilePath(context: Context, assetName: String): String? {
+private fun assetFilePath(context: Context, assetName: String): String? {
     val file = File(context.filesDir, assetName)
     if (file.exists() && file.length() > 0) {
         return file.absolutePath
