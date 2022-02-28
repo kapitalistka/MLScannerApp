@@ -1,10 +1,12 @@
 package com.maslo.mlscanner
 
+import kotlin.math.exp
+
 
 fun softMax(params: FloatArray): FloatArray {
     var sum = 0.0
     for (i in params.indices) {
-        params[i] = Math.exp(params[i].toDouble()).toFloat()
+        params[i] = exp(params[i].toDouble()).toFloat()
         sum += params[i]
     }
     if (java.lang.Double.isNaN(sum) || sum < 0) {

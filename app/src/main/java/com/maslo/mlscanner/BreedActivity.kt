@@ -1,18 +1,17 @@
 package com.maslo.mlscanner
 
-import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.provider.MediaStore
-import android.util.Log
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.maslo.mlscanner.databinding.ActivityBreedBinding
 
-private const val TAG = "BreedActivity"
 
 class BreedActivity : AppCompatActivity() {
 
@@ -20,7 +19,7 @@ class BreedActivity : AppCompatActivity() {
     private lateinit var binding: ActivityBreedBinding
 
     companion object {
-        private const val REQUEST_CODE = 34
+        private const val PHOTO_REQUEST_CODE = 34
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,9 +27,13 @@ class BreedActivity : AppCompatActivity() {
         binding = ActivityBreedBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
-        binding.fab.setOnClickListener { view ->
-            dispatchTakePictureIntent()
+
+        val activityLauncher = registerForActivityResult(BreedActivityContract()) { resultBitmap ->
+            resultBitmap?.let { processNewImage(resultBitmap) }
         }
+
+        binding.fab.setOnClickListener { activityLauncher.launch(PHOTO_REQUEST_CODE) }
+
         viewModel.predictionLiveData.observe(this) {
             it?.let {
                 binding.resultTv.text = it.breed.first
@@ -38,7 +41,8 @@ class BreedActivity : AppCompatActivity() {
                 binding.or.visibility = if (isAlter) View.VISIBLE else View.INVISIBLE
                 binding.resultAltTv.visibility = if (isAlter) View.VISIBLE else View.INVISIBLE
                 binding.resultAltTv.text = it.alterBreed?.first ?: ""
-                binding.ambiguousTv.visibility =  if (it.isAmbiguity) View.VISIBLE else View.INVISIBLE
+                binding.ambiguousTv.visibility =
+                    if (it.isAmbiguity) View.VISIBLE else View.INVISIBLE
 
                 Toast.makeText(
                     this,
@@ -49,26 +53,24 @@ class BreedActivity : AppCompatActivity() {
         }
 
         viewModel.setModel(readModelFromAsset(this.applicationContext))
-
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_CODE && resultCode == RESULT_OK) {
-            val imageBitmap = data?.extras?.get("data") as Bitmap
-            binding.image.setImageBitmap(imageBitmap)
-            viewModel.processBitmap(imageBitmap)
-        }
+    private fun processNewImage(imageBitmap: Bitmap) {
+        binding.image.setImageBitmap(imageBitmap)
+        viewModel.processBitmap(imageBitmap)
     }
 
+}
 
-    private fun dispatchTakePictureIntent() {
-        val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        try {
-            startActivityForResult(takePictureIntent, REQUEST_CODE)
-        } catch (e: ActivityNotFoundException) {
-            //TODO: display error state to the user
-        }
+class BreedActivityContract : ActivityResultContract<Int, Bitmap?>() {
+    override fun createIntent(context: Context, input: Int): Intent {
+        return Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+    }
+
+    override fun parseResult(resultCode: Int, intent: Intent?): Bitmap? {
+        return if (resultCode == AppCompatActivity.RESULT_OK) {
+            intent?.extras?.get("data") as Bitmap?
+        } else null
     }
 }
 

@@ -4,13 +4,10 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.util.Log
+import kotlin.math.max
 
 private const val TAG = "BitmapExt"
-fun Bitmap.cropCenter(size: Int)
-/*(
-    newWidth:Int = min(width,height),
-    newHeight:Int = min(width,height)
-)*/: Bitmap? {
+fun Bitmap.cropCenter(size: Int): Bitmap? {
     Log.d(TAG, "cropCenter")
     val newWidth: Int = size//min(width,height),
     val newHeight: Int = size//min(width,height)
@@ -35,11 +32,16 @@ fun Bitmap.cropCenter(size: Int)
 
 fun Bitmap.createSquaredBitmap(): Bitmap? {
     Log.d(TAG, "createSquaredBitmap")
-    val dim = Math.max(this.width, this.height)
+    val dim = max(this.width, this.height)
     val dstBmp = Bitmap.createBitmap(dim, dim, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(dstBmp)
     canvas.drawColor(Color.BLACK)
-    canvas.drawBitmap(this, ((dim - this.width) / 2).toFloat(), ((dim - this.height) / 2).toFloat(), null)
+    canvas.drawBitmap(
+        this,
+        ((dim - this.width) / 2).toFloat(),
+        ((dim - this.height) / 2).toFloat(),
+        null
+    )
     return dstBmp
 }
 
